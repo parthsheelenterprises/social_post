@@ -1,0 +1,2 @@
+# Store the real token with: npx wrangler secret put META_PAGE_ACCESS_TOKEN
+META_PAGE_ACCESS_TOKEN=
