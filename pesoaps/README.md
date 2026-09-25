@@ -8,7 +8,7 @@ it using the included workflow.
 
 ## Current status
 
-Implemented and tested locally. **Not deployed, not connected to Meta, and not
+Implemented and tested locally. **Deployed to PE's Cloudflare account with D1 and the 08:00 IST Cron Trigger; not connected to Meta and not
 publishing.** `PUBLISH_ENABLED` is deliberately `false` until setup is complete.
 
 - Facebook destination: https://www.facebook.com/profile.php?id=61581662363686
@@ -22,9 +22,9 @@ publishing.** `PUBLISH_ENABLED` is deliberately `false` until setup is complete.
   uses the public Flipkart image URLs; its CDN must allow Meta to fetch them.
 - Git repository: `parthsheelenterprises/social_post`, automation folder: `pesoaps/`.
 - Cloudflare account: `1fbc90f336ed0cd8f6934c631fb732f4`, explicitly set in config.
-- Current GitHub logins have read-only repository access and the connected
-  Cloudflare login cannot access this account. Push and deployment require PE's
-  authenticated accounts. No remote resources have been created.
+- The repository is pushed under PE's GitHub account. The PE Cloudflare account is
+  connected through a dedicated Wrangler profile. The Worker and database have been
+  deployed. Meta connection remains the launch prerequisite.
 
 ## Publishing behavior
 
