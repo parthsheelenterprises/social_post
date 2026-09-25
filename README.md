@@ -7,7 +7,7 @@ dependencies, tests, catalogue, and operating instructions.
 
 | Folder | Automation | Schedule | Status |
 | --- | --- | --- | --- |
-| [pesoaps/](pesoaps/README.md) | PESoaps Facebook and Instagram posts with Flipkart purchase links | Daily at 08:00 IST | Tested locally; deployment and Meta connection pending |
+| [pesoaps/](pesoaps/README.md) | PESoaps Facebook and Instagram posts with Flipkart purchase links | Daily at 08:00 IST | Deployed and enabled; first scheduled post pending |
 
 ## Repository layout
 

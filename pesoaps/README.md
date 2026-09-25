@@ -8,8 +8,10 @@ it using the included workflow.
 
 ## Current status
 
-Implemented and tested locally. **Deployed to PE's Cloudflare account with D1 and the 08:00 IST Cron Trigger; not connected to Meta and not
-publishing.** `PUBLISH_ENABLED` is deliberately `false` until setup is complete.
+Deployed to PE's Cloudflare account with D1 and the 08:00 IST Cron Trigger. Meta
+credentials and the verified Graph account IDs are configured. The first
+scheduled post is planned for 26 September 2026. `PUBLISH_ENABLED` is `true`.
+Public scheduled publishing has not yet been observed.
 
 - Facebook destination: https://www.facebook.com/profile.php?id=61581662363686
 - Instagram destination: https://www.instagram.com/parthsheelenterprises/
@@ -24,7 +26,14 @@ publishing.** `PUBLISH_ENABLED` is deliberately `false` until setup is complete.
 - Cloudflare account: `1fbc90f336ed0cd8f6934c631fb732f4`, explicitly set in config.
 - The repository is pushed under PE's GitHub account. The PE Cloudflare account is
   connected through a dedicated Wrangler profile. The Worker and database have been
-  deployed. Meta connection remains the launch prerequisite.
+  deployed. The Worker secret is a Page token derived from a non-expiring
+  `pesocial` system-user token; neither token is in Git.
+- Meta Graph Page ID: `836277059563285`; linked Instagram business account ID:
+  `17841478501494423`. These were checked through the Graph API. The public
+  Facebook profile URL above uses a different ID and is not the publishing ID.
+- A Facebook photo and Instagram media container were created unpublished with
+  the Page token and a verified product image. Public scheduled publishing has
+  not yet been observed.
 
 ## Publishing behavior
 
