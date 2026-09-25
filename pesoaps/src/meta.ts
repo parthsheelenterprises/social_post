@@ -20,9 +20,14 @@ export class MetaClient {
         headers: { Authorization: `Bearer ${this.token}` },
         body: method === 'POST' ? new URLSearchParams(params) : undefined,
         signal: AbortSignal.timeout(20_000),
-        redirect: 'error',
+        // Workers do not support redirect: 'error'. Keep redirects visible so
+        // a Meta API redirect is treated as a failure rather than followed.
+        redirect: 'manual',
       });
     } catch { throw new MetaError('network_outcome_unknown'); }
+    if (response.status >= 300 && response.status < 400) {
+      throw new MetaError(`meta_${response.status}_0`);
+    }
     let data: MetaResponse;
     try { data = await response.json<MetaResponse>(); }
     catch { throw new MetaError('invalid_response_outcome_unknown'); }

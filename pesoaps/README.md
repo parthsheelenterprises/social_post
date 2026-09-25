@@ -11,7 +11,8 @@ it using the included workflow.
 Deployed to PE's Cloudflare account with D1 and the 08:00 IST Cron Trigger. Meta
 credentials and the verified Graph account IDs are configured. The first
 scheduled post is planned for 26 September 2026. `PUBLISH_ENABLED` is `true`.
-Public scheduled publishing has not yet been observed.
+An immediate public test on 25 September 2026 published one product to both
+platforms. The first scheduled post is still due on 26 September.
 
 - Facebook destination: https://www.facebook.com/profile.php?id=61581662363686
 - Instagram destination: https://www.instagram.com/parthsheelenterprises/
@@ -31,9 +32,12 @@ Public scheduled publishing has not yet been observed.
 - Meta Graph Page ID: `836277059563285`; linked Instagram business account ID:
   `17841478501494423`. These were checked through the Graph API. The public
   Facebook profile URL above uses a different ID and is not the publishing ID.
-- A Facebook photo and Instagram media container were created unpublished with
-  the Page token and a verified product image. Public scheduled publishing has
-  not yet been observed.
+- The public test posted the fifth product on
+  [Facebook](https://www.facebook.com/photo/?fbid=122141663283055412) and
+  [Instagram](https://www.instagram.com/p/Ddt9lzdlCJE/). The Facebook caption's
+  Flipkart URL is clickable. Instagram displays the URL in the caption as plain
+  text; a bio/shop link is needed for a clickable Instagram purchase path.
+  Public scheduled publishing has not yet been observed.
 
 ## Publishing behavior
 
@@ -44,10 +48,9 @@ and brand hashtags. They do not invent discounts, stock status, health benefits,
 or product attributes. The photo is the verified product image; the current
 implementation does not generate new artwork or scrape Flipkart each day.
 
-The caption contains the purchase URL on both platforms. Before launch, verify
-the Instagram account's available clickable-link options and set up a bio/shop
-link if needed; a caption URL alone must not be treated as a guaranteed clickable
-purchase path. There is no automatic bio editing in this Worker.
+The caption contains the purchase URL on both platforms. Instagram displays
+caption URLs as plain text, so a bio/shop link is needed for a clickable purchase
+path there. There is no automatic bio editing in this Worker.
 
 Each `(day, platform)` has a unique D1 claim. Successful deliveries are never
 automatically repeated. Ambiguous API failures and interrupted runs require

@@ -42,6 +42,7 @@ function fakeMeta(t, failFacebook = false) {
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.equal(url.hostname, 'graph.facebook.com');
     assert.equal(url.searchParams.has('access_token'), false);
+    assert.equal(options.redirect, 'manual');
     assert.equal(options.headers.Authorization, 'Bearer test-only-token');
     const path = url.pathname;
     calls.push(path);
@@ -104,6 +105,15 @@ test('ambiguous Facebook failure does not block Instagram or trigger duplicate r
   const row = db.prepare("SELECT status,error_code FROM deliveries WHERE platform='facebook'").get();
   assert.equal(row.status, 'needs_review');
   assert.equal(row.error_code, 'network_outcome_unknown');
+});
+
+test('Meta redirects fail visibly without following to another host', async t => {
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    assert.equal(options.redirect, 'manual');
+    return new Response(null, { status: 302, headers: { Location: 'https://example.com/' } });
+  });
+  const meta = new MetaClient('v21.0', 'test-only-token');
+  await assert.rejects(meta.publishFacebook('123', 'https://example.com/soap.jpg', 'Caption'), /meta_302_0/);
 });
 
 test('concurrent delivery claims publish only once', async t => {
