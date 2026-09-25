@@ -1,0 +1,24 @@
+{
+  "name": "pe-soaps-social-posts",
+  "version": "1.0.0",
+  "description": "PESoaps daily Facebook and Instagram publishing on Cloudflare",
+  "scripts": {
+    "dev": "wrangler dev --test-scheduled",
+    "types": "wrangler types --strict-vars=false",
+    "check": "npm run types && tsc --noEmit",
+    "test": "node --test test/*.test.ts",
+    "build": "wrangler deploy --dry-run",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260925.1",
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.139.0"
+  },
+  "private": true
+}

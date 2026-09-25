@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "pe-soaps-social-posts",
+  "account_id": "1fbc90f336ed0cd8f6934c631fb732f4",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "triggers": { "crons": ["30 2 * * *"] },
+  "d1_databases": [{ "binding": "DB", "database_name": "pe-soaps-social-posts", "migrations_dir": "migrations" }],
+  "vars": {
+    "PUBLISH_ENABLED": "false",
+    "FACEBOOK_PAGE_ID": "61581662363686",
+    "INSTAGRAM_USER_ID": "",
+    "META_GRAPH_VERSION": "",
+    "ROTATION_START_DATE": "2026-09-26"
+  }
+}
