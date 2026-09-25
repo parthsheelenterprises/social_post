@@ -1,0 +1,5 @@
+UPDATE products SET purchase_url='https://www.flipkart.com/parthsheel-enterprises-all-one-soap-18-selected-ingredients-cleansing-exfoliating-refreshing/p/itmd955358345543?pid=SOPHR8SDHRHRJKGS', verified=0 WHERE id='pesoaps-1';
+UPDATE products SET purchase_url='https://www.flipkart.com/parthsheel-enterprises-all-one-soap-18-selected-ingredients-cleansing-exfoliating-refreshing/p/itmd955358345543?pid=SOPHR9YYWTARCTEY', verified=0 WHERE id='pesoaps-2';
+UPDATE products SET purchase_url='https://www.flipkart.com/parthsheel-enterprises-coffee-scrub-soap-handmade-skin-brightening-dead-removal-exfoliation/p/itm80b0a7fc8c218?pid=SOPHPTRAWNB7ZZGT', verified=0 WHERE id='pesoaps-3';
+UPDATE products SET purchase_url='https://www.flipkart.com/parthsheel-enterprises-all-one-soap-tan-removal-skin-brightening-exfoliation-100g/p/itm4761ad28a2ec3?pid=SOPHR9UDPKNGFU6K', verified=0 WHERE id='pesoaps-4';
+UPDATE products SET purchase_url='https://www.flipkart.com/parthsheel-enterprises-all-one-soap-handmade-tan-removal-skin-brightening-exfoliation/p/itmc72d102ae3185?pid=SOPHQ7RXFZVSQXXE', verified=0 WHERE id='pesoaps-5';
