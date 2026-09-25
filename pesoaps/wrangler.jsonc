@@ -7,7 +7,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true, "head_sampling_rate": 1 },
   "triggers": { "crons": ["30 2 * * *"] },
-  "d1_databases": [{ "binding": "DB", "database_name": "pe-soaps-social-posts", "migrations_dir": "migrations" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "pe-soaps-social-posts", "database_id": "f4bbf4bb-c8ec-4342-bbbc-b206f4884a4d", "migrations_dir": "migrations" }],
   "vars": {
     "PUBLISH_ENABLED": "false",
     "FACEBOOK_PAGE_ID": "61581662363686",
