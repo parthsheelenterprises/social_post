@@ -7,7 +7,7 @@ dependencies, tests, catalogue, and operating instructions.
 
 | Folder | Automation | Schedule | Status |
 | --- | --- | --- | --- |
-| [pesoaps/](pesoaps/README.md) | PESoaps Facebook and Instagram posts with Flipkart purchase links | Daily at 08:00 IST | Deployed and enabled; first scheduled post pending |
+| [pesoaps/](pesoaps/README.md) | PESoaps Facebook and Instagram posts with Flipkart purchase links | Daily at 08:00 IST | Deployed and enabled; daily health check at 09:00 IST |
 
 ## Repository layout
 
@@ -15,7 +15,8 @@ dependencies, tests, catalogue, and operating instructions.
 social_post/
 ├── .github/workflows/       # GitHub requires workflow files here
 │   ├── check.yml            # Checks only PESoaps changes
-│   └── deploy.yml           # Explicit PESoaps deployment
+│   ├── deploy.yml           # Explicit PESoaps deployment
+│   └── pesoaps-daily-health.yml # Checks each morning's publishing result
 ├── .gitignore
 ├── README.md
 └── pesoaps/

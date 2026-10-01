@@ -9,10 +9,11 @@ it using the included workflow.
 ## Current status
 
 Deployed to PE's Cloudflare account with D1 and the 08:00 IST Cron Trigger. Meta
-credentials and the verified Graph account IDs are configured. The first
-scheduled post is planned for 26 September 2026. `PUBLISH_ENABLED` is `true`.
-An immediate public test on 25 September 2026 published one product to both
-platforms. The first scheduled post is still due on 26 September.
+credentials and the verified Graph account IDs are configured. `PUBLISH_ENABLED`
+is `true`. Scheduled posts succeeded on 26 September and 1 October 2026. Meta
+rejected both platforms with permission error 200 on 27–30 September while the
+developer account required identity confirmation. The failed dates remain
+flagged for review; they are not automatically replayed.
 
 - Facebook destination: https://www.facebook.com/profile.php?id=61581662363686
 - Instagram destination: https://www.instagram.com/parthsheelenterprises/
@@ -37,7 +38,13 @@ platforms. The first scheduled post is still due on 26 September.
   [Instagram](https://www.instagram.com/p/Ddt9lzdlCJE/). The Facebook caption's
   Flipkart URL is clickable. Instagram displays the URL in the caption as plain
   text; a bio/shop link is needed for a clickable Instagram purchase path.
-  Public scheduled publishing has not yet been observed.
+
+A public `GET /health/daily` check reports the current Indian calendar day's run
+status after 08:30 IST, returning HTTP 503 if it is missing or failed. GitHub
+Actions checks this endpoint at 09:00 IST each day and marks the run failed when
+publishing failed. Check the repository's Actions notifications/settings to
+receive failure emails. Meta can revoke publishing permission independently of
+Cloudflare; restoring account access requires resolving Meta's account prompt.
 
 ## Publishing behavior
 

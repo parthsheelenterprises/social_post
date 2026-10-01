@@ -133,6 +133,24 @@ test('public HTTP requests cannot trigger publishing', async () => {
   assert.equal(response.status, 404);
 });
 
+test('daily health reports a missed run after the scheduled post window', async t => {
+  const { db, env } = setup();
+  t.after(() => db.close());
+  const clock = t.mock.method(Date, 'now', () => Date.parse('2026-09-26T03:30:00Z'));
+  const url = new Request('https://example.com/health/daily');
+  let response = await worker.fetch(url, env);
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { day: '2026-09-26', status: 'missing' });
+  db.exec("INSERT INTO runs(day,status,details) VALUES('2026-09-26','published','both platforms')");
+  response = await worker.fetch(url, env);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { day: '2026-09-26', status: 'published' });
+  clock.mock.mockImplementation(() => Date.parse('2026-09-26T02:00:00Z'));
+  response = await worker.fetch(url, env);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { day: '2026-09-26', status: 'pending' });
+});
+
 test('catalog preserves all five exact Flipkart variants and verified JPEG URLs', t => {
   const { db } = setup();
   t.after(() => db.close());

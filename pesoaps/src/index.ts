@@ -102,9 +102,24 @@ export async function runDaily(env: RuntimeEnv, timestamp: number): Promise<void
 }
 
 export default {
-  async fetch(request: Request): Promise<Response> {
-    if (request.method === 'GET' && new URL(request.url).pathname === '/health') {
+  async fetch(request: Request, env: RuntimeEnv): Promise<Response> {
+    const path = new URL(request.url).pathname;
+    if (request.method === 'GET' && path === '/health') {
       return Response.json({ service: 'PESoaps social posts', schedule: '08:00 Asia/Kolkata', status: 'running' });
+    }
+    if (request.method === 'GET' && path === '/health/daily') {
+      const now = Date.now();
+      const day = istDay(now);
+      const istTime = new Date(now + 330 * 60_000).toISOString().slice(11, 16);
+      if (istTime < '08:30') {
+        return Response.json({ day, status: 'pending' }, { headers: { 'Cache-Control': 'no-store' } });
+      }
+      const run = await env.DB.prepare('SELECT status FROM runs WHERE day=?').bind(day).first<{ status: string }>();
+      const status = run?.status ?? 'missing';
+      return Response.json({ day, status }, {
+        status: status === 'published' ? 200 : 503,
+        headers: { 'Cache-Control': 'no-store' },
+      });
     }
     return new Response('Not found', { status: 404 });
   },

@@ -5,11 +5,13 @@ on:
       - 'pesoaps/**'
       - '.github/workflows/check.yml'
       - '.github/workflows/deploy.yml'
+      - '.github/workflows/pesoaps-daily-health.yml'
   pull_request:
     paths:
       - 'pesoaps/**'
       - '.github/workflows/check.yml'
       - '.github/workflows/deploy.yml'
+      - '.github/workflows/pesoaps-daily-health.yml'
 permissions:
   contents: read
 jobs:

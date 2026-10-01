@@ -1,0 +1,13 @@
+name: PESoaps daily publishing health
+on:
+  schedule:
+    - cron: '30 3 * * *' # 09:00 IST, one hour after the Cloudflare post
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check today's Facebook and Instagram deliveries
+        run: curl --fail-with-body --show-error --silent https://pe-soaps-social-posts.relaunch-v1.workers.dev/health/daily
