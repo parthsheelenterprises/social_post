@@ -4,6 +4,11 @@ This checkout belongs only to Parthsheel Enterprises. Offerloom is a separate
 project with separate GitHub, Cloudflare, Meta, assets, and publishing state.
 Do not use Offerloom credentials, product data, or deployment targets here.
 
+- Use Safari only for all PE browser work, including GitHub, Cloudflare, and
+  Meta dashboards, sign-ins, and authorizations. Keep PE browser sessions out
+  of the Codex in-app browser and other browsers. If Safari cannot be controlled
+  for a needed UI action, explain the limitation instead of switching browsers.
+
 - GitHub repository: `parthsheelenterprises/social_post`. Run
   `sh scripts/setup-local-auth.sh` after cloning. Use ordinary `git` commands
   for this checkout and `sh scripts/pe-gh.sh ...` for GitHub CLI operations;
