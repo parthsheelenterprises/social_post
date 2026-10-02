@@ -72,14 +72,14 @@ even if the response was lost. This favors avoiding duplicates over blind retrie
 2. Create D1 in the intended Cloudflare account:
 
    ```sh
-   npx wrangler d1 create pe-soaps-social-posts
+   sh ./scripts/wrangler.sh d1 create pe-soaps-social-posts
    ```
 
    Copy the returned database ID into the `DB` binding in `wrangler.jsonc`.
    The intended Cloudflare account ID is already configured. Apply the migrations:
 
    ```sh
-   npx wrangler d1 migrations apply pe-soaps-social-posts --remote
+   npm run db:migrate
    ```
 
 3. The migrations populate all five product names and image URLs. Recheck the
@@ -97,7 +97,7 @@ even if the response was lost. This favors avoiding duplicates over blind retrie
 5. Store the Page access token as a Cloudflare Worker secret, never in Git or chat:
 
    ```sh
-   npx wrangler secret put META_PAGE_ACCESS_TOKEN
+   sh ./scripts/wrangler.sh secret put META_PAGE_ACCESS_TOKEN
    ```
 
    Token expiry or revoked permissions stop publishing and appear as failed
@@ -142,7 +142,7 @@ integration tests.
 For a safe local smoke test, keep publishing disabled:
 
 ```sh
-npx wrangler d1 migrations apply pe-soaps-social-posts --local
+sh ./scripts/wrangler.sh d1 migrations apply pe-soaps-social-posts --local
 npm run dev
 ```
 
@@ -154,9 +154,9 @@ not publishing readiness.
 Inspect production runs with:
 
 ```sh
-npx wrangler d1 execute pe-soaps-social-posts --remote --command "SELECT * FROM runs ORDER BY day DESC LIMIT 10"
-npx wrangler d1 execute pe-soaps-social-posts --remote --command "SELECT * FROM deliveries ORDER BY day DESC LIMIT 20"
-npx wrangler tail
+sh ./scripts/wrangler.sh d1 execute pe-soaps-social-posts --remote --command "SELECT * FROM runs ORDER BY day DESC LIMIT 10"
+sh ./scripts/wrangler.sh d1 execute pe-soaps-social-posts --remote --command "SELECT * FROM deliveries ORDER BY day DESC LIMIT 20"
+sh ./scripts/wrangler.sh tail
 ```
 
 Failures are recorded in D1 and structured Worker logs; failed runs throw so

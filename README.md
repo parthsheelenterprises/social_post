@@ -37,6 +37,20 @@ automation directory.
 
 ## PESoaps development
 
+This checkout uses PE-specific authentication without changing the global
+GitHub CLI account used by Offerloom. Run `sh scripts/setup-local-auth.sh` once
+after cloning; it configures only this checkout's `.git/config`. Git pushes then
+request the `parthsheelenterprises` token from GitHub CLI, even when `offerloom`
+is the active global GitHub account. For PE-specific GitHub CLI operations use
+`sh scripts/pe-gh.sh <gh arguments>` (for example,
+`sh scripts/pe-gh.sh workflow list`). Neither script saves a token in Git.
+
+The `pesoaps/` npm scripts use Wrangler's `pesoaps-pe` profile locally and
+ignore unrelated Cloudflare API environment variables. The protected GitHub
+deployment workflow supplies a PE-only token. Cloudflare's already deployed
+08:00 IST cron and Meta Worker secret are independent of local GitHub, browser,
+and Wrangler login state. The daily health check reports publishing failures.
+
 ```sh
 cd pesoaps
 npm ci

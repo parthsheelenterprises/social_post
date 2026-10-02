@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "description": "PESoaps daily Facebook and Instagram publishing on Cloudflare",
   "scripts": {
-    "dev": "wrangler dev --test-scheduled",
-    "types": "wrangler types --strict-vars=false",
+    "dev": "sh ./scripts/wrangler.sh dev --test-scheduled",
+    "types": "sh ./scripts/wrangler.sh types --strict-vars=false",
     "check": "npm run types && tsc --noEmit",
     "test": "node --test test/*.test.ts",
-    "build": "wrangler deploy --dry-run",
-    "deploy": "wrangler deploy"
+    "build": "sh ./scripts/wrangler.sh deploy --dry-run",
+    "deploy": "sh ./scripts/wrangler.sh deploy",
+    "db:migrate": "sh ./scripts/wrangler.sh d1 migrations apply pe-soaps-social-posts --remote"
   },
   "keywords": [],
   "author": "",
