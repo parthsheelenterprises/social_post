@@ -3,8 +3,9 @@
 Cloudflare Worker for Parthsheel Enterprises. One product photo and caption per
 platform per day, at **08:00 Asia/Kolkata (02:30 UTC)**. The five supplied Flipkart
 links rotate in order. The deployed Cron Trigger and D1 database run in Cloudflare;
-the laptop is not part of scheduled execution. GitHub stores code and can deploy
-it using the included workflow.
+the laptop is not part of scheduled execution. GitHub stores code. Its optional
+deployment workflow needs a `pesoaps-production` environment with a scoped
+`CLOUDFLARE_API_TOKEN` secret before it can deploy.
 
 ## Current status
 

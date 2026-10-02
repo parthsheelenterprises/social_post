@@ -23,6 +23,12 @@ jobs:
           cache: npm
           cache-dependency-path: pesoaps/package-lock.json
       - run: npm ci
+      - name: Require PE Cloudflare deployment credential
+        run: |
+          if [ -z "$PE_SOAPS_CLOUDFLARE_API_TOKEN" ]; then
+            echo '::error::Configure CLOUDFLARE_API_TOKEN in the pesoaps-production GitHub environment before deploying.'
+            exit 1
+          fi
       - run: npm run check
       - run: npm test
       - run: npm run build

@@ -46,10 +46,12 @@ is the active global GitHub account. For PE-specific GitHub CLI operations use
 `sh scripts/pe-gh.sh workflow list`). Neither script saves a token in Git.
 
 The `pesoaps/` npm scripts use Wrangler's `pesoaps-pe` profile locally and
-ignore unrelated Cloudflare API environment variables. The protected GitHub
-deployment workflow supplies a PE-only token. Cloudflare's already deployed
-08:00 IST cron and Meta Worker secret are independent of local GitHub, browser,
-and Wrangler login state. The daily health check reports publishing failures.
+ignore unrelated Cloudflare API environment variables. The GitHub deployment
+workflow is prepared for a PE-only token in its `pesoaps-production` environment;
+that environment and token still need to be configured before using the workflow.
+The deployed Cloudflare 08:00 IST cron and Meta Worker secret are independent of
+local GitHub, browser, and Wrangler login state. The daily health check reports
+publishing failures.
 
 ```sh
 cd pesoaps
@@ -61,8 +63,9 @@ npm run build
 
 Target Cloudflare account: `1fbc90f336ed0cd8f6934c631fb732f4`.
 The account is explicitly configured in both the Worker and deployment workflow.
-GitHub deployment uses the `pesoaps-production` environment and its
-`CLOUDFLARE_API_TOKEN` secret. Meta credentials belong in Cloudflare Worker secrets.
+GitHub deployment expects the `pesoaps-production` environment and its
+`CLOUDFLARE_API_TOKEN` secret; neither is configured yet. Local deployment uses
+the PE Wrangler profile. Meta credentials belong in Cloudflare Worker secrets.
 Never commit credentials to this repository.
 
 The daily schedule runs on Cloudflare after deployment and does not depend on a
