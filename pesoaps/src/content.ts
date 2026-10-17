@@ -28,7 +28,7 @@ export function rotationIndex(day: string, start: string, count: number): number
   return ((days % count) + count) % count;
 }
 
-export function imageForDay(product: Product, day: string, start: string, productCount: number): string {
+export function imageForDay(product: Product, day: string, start: string, productCount: number, previousImageUrl?: string): string {
   const images = [product.image_url!, ...(alternateImages[product.id] ?? [])];
   const days = Math.floor((Date.parse(day) - Date.parse(start)) / 86_400_000);
   const appearance = Math.floor(days / productCount);
@@ -36,7 +36,8 @@ export function imageForDay(product: Product, day: string, start: string, produc
   // product-specific offset makes the grid varied while retries stay identical.
   const offset = [...product.id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % images.length;
   const step = images.length > 2 ? images.length - 1 : 1;
-  return images[((offset + appearance * step) % images.length + images.length) % images.length];
+  const index = ((offset + appearance * step) % images.length + images.length) % images.length;
+  return images[index] === previousImageUrl ? images[(index + 1) % images.length] : images[index];
 }
 
 export function productReady(product: Product): boolean {

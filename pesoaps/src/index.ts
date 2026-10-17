@@ -82,9 +82,11 @@ export async function runDaily(env: RuntimeEnv, timestamp: number): Promise<void
       await recordRun(env, day, 'blocked', `Product data needs verification: ${product?.id ?? 'empty_catalog'}`);
       throw new Error('Product data incomplete');
     }
+    const previous = await env.DB.prepare('SELECT image_url FROM daily_posts WHERE product_id=? ORDER BY day DESC LIMIT 1')
+      .bind(product.id).first<{ image_url: string }>();
     await env.DB.prepare(`INSERT OR IGNORE INTO daily_posts(day,product_id,name,purchase_url,image_url,caption) VALUES(?,?,?,?,?,?)`)
       .bind(day, product.id, product.name!, product.purchase_url,
-        imageForDay(product, day, env.ROTATION_START_DATE, results.length), makeCaption(product, day)).run();
+        imageForDay(product, day, env.ROTATION_START_DATE, results.length, previous?.image_url), makeCaption(product, day)).run();
     post = await env.DB.prepare('SELECT * FROM daily_posts WHERE day=?').bind(day).first<Post>();
     if (!post) throw new Error('Unable to save daily post');
   }

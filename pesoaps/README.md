@@ -53,7 +53,8 @@ The Worker selects a product by Indian calendar date and chooses a different
 verified image layout on each repeat of that product. The layouts use the exact
 product photo inside branded frames; the first soap also has a second photo from
 its Flipkart gallery. The chosen image URL and caption are saved for the day,
-so retries cannot change the creative or duplicate a delivery. The layout JPEGs
+and the previous image is excluded so the change takes effect on the next post.
+Retries cannot change the creative or duplicate a delivery. The layout JPEGs
 are committed in `catalog/images/variants/` and served publicly from this repo.
 The Worker then publishes the same photo to Facebook and Instagram. Captions
 use the verified product name, a rotating introduction, the exact Flipkart link,

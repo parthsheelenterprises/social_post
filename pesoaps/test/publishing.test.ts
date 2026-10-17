@@ -185,3 +185,17 @@ test('repeat appearances vary the same product photo without changing its listin
     }
   }
 });
+
+test('first new creative avoids repeating the previously published photo', async t => {
+  const { db, env } = setup();
+  t.after(() => db.close());
+  verifyProducts(db);
+  const product = db.prepare("SELECT * FROM products WHERE id='pesoaps-3'").get();
+  db.prepare(`INSERT INTO daily_posts(day,product_id,name,purchase_url,image_url,caption)
+    VALUES(?,?,?,?,?,?)`).run('2026-10-13', product.id, product.name, product.purchase_url, product.image_url, 'prior');
+  fakeMeta(t);
+  await runDaily(env, Date.parse('2026-10-18T02:30:00Z'));
+  const next = db.prepare("SELECT image_url FROM daily_posts WHERE day='2026-10-18'").get();
+  assert.notEqual(next.image_url, product.image_url);
+  assert.match(next.image_url, /pesoaps-3-frame\.jpg$/);
+});
