@@ -30,18 +30,29 @@ jobs:
       - run: npm ci
       - name: Verify and import new product IDs
         run: npm run catalog:import
+      - name: Detect new catalog entries
+        id: catalog
+        run: |
+          if [ -n "$(git status --porcelain -- catalog migrations)" ]; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          fi
       - name: Check catalog and Worker
+        if: steps.catalog.outputs.changed == 'true'
         run: |
           npm run check
           npm test
           npm run build
       - name: Require PE deployment credential
+        if: steps.catalog.outputs.changed == 'true'
         run: |
           if [ -z "$PE_SOAPS_CLOUDFLARE_API_TOKEN" ]; then
             echo '::error::Configure CLOUDFLARE_API_TOKEN in the pesoaps-production environment. New products were not activated.'
             exit 1
           fi
       - name: Commit verified catalog and photos
+        if: steps.catalog.outputs.changed == 'true'
         run: |
           git add catalog migrations
           if ! git diff --cached --quiet; then
@@ -51,6 +62,8 @@ jobs:
             git push
           fi
       - name: Apply new product rows
+        if: steps.catalog.outputs.changed == 'true'
         run: npm run db:migrate
       - name: Deploy Worker
+        if: steps.catalog.outputs.changed == 'true'
         run: npm run deploy
