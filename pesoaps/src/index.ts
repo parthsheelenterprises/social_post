@@ -1,9 +1,9 @@
-import { imageForDay, istDay, makeCaption, productReady, rotationIndex, type Product } from './content.ts';
+import { imagesForDay, istDay, makeCaption, productReady, rotationIndex, type Product } from './content.ts';
 import { MetaClient, MetaError } from './meta.ts';
 
 export type RuntimeEnv = Env & { META_PAGE_ACCESS_TOKEN?: string };
 type Platform = 'facebook' | 'instagram';
-type Post = { day: string; product_id: string; name: string; purchase_url: string; image_url: string; caption: string };
+type Post = { day: string; product_id: string; name: string; purchase_url: string; image_url: string; image_urls_json: string | null; caption: string };
 
 async function recordRun(env: RuntimeEnv, day: string, status: string, details: string) {
   await env.DB.prepare(`INSERT INTO runs(day,status,details) VALUES(?,?,?)
@@ -32,24 +32,30 @@ export async function deliver(env: RuntimeEnv, post: Post, platform: Platform, m
   if (claim.meta.changes !== 1) return;
 
   try {
+    const images = post.image_urls_json ? JSON.parse(post.image_urls_json) as unknown : [post.image_url];
+    if (!Array.isArray(images) || images.length < 1 || images.length > 10 ||
+        images[0] !== post.image_url || new Set(images).size !== images.length ||
+        images.some(image => typeof image !== 'string' || !image.startsWith('https://'))) {
+      throw new MetaError('invalid_carousel_images');
+    }
+    const imageUrls = images as string[];
     let containerId: string | undefined;
     if (platform === 'instagram') {
-      containerId = await meta.createInstagram(env.INSTAGRAM_USER_ID, post.image_url, post.caption);
+      if (imageUrls.length === 1) {
+        containerId = await meta.createInstagram(env.INSTAGRAM_USER_ID, imageUrls[0], post.caption);
+      } else {
+        const children = await Promise.all(imageUrls.map(image => meta.createInstagramCarouselItem(env.INSTAGRAM_USER_ID, image)));
+        await Promise.all(children.map(id => waitInstagramContainer(meta, id)));
+        containerId = await meta.createInstagramCarousel(env.INSTAGRAM_USER_ID, children, post.caption);
+      }
       await env.DB.prepare(`UPDATE deliveries SET status='container_ready',container_id=?,updated_at=CURRENT_TIMESTAMP WHERE day=? AND platform=?`)
         .bind(containerId, post.day, platform).run();
-      let ready = false;
-      for (let attempt = 0; attempt < 10; attempt++) {
-        const status = await meta.instagramStatus(containerId);
-        if (status === 'FINISHED') { ready = true; break; }
-        if (['ERROR', 'EXPIRED', 'PUBLISHED'].includes(status)) throw new MetaError(`container_${status.toLowerCase()}`);
-        await new Promise(resolve => setTimeout(resolve, 2_000));
-      }
-      if (!ready) throw new MetaError('container_not_ready');
+      await waitInstagramContainer(meta, containerId);
     }
     await env.DB.prepare(`UPDATE deliveries SET status='publishing',updated_at=CURRENT_TIMESTAMP WHERE day=? AND platform=?`)
       .bind(post.day, platform).run();
     const remoteId = platform === 'facebook'
-      ? await meta.publishFacebook(env.FACEBOOK_PAGE_ID, post.image_url, post.caption)
+      ? await meta.publishFacebookCarousel(env.FACEBOOK_PAGE_ID, imageUrls, post.caption)
       : await meta.publishInstagram(env.INSTAGRAM_USER_ID, containerId!);
     await env.DB.prepare(`UPDATE deliveries SET status='published',remote_id=?,updated_at=CURRENT_TIMESTAMP WHERE day=? AND platform=?`)
       .bind(remoteId, post.day, platform).run();
@@ -59,6 +65,16 @@ export async function deliver(env: RuntimeEnv, post: Post, platform: Platform, m
       .bind(code, post.day, platform).run();
     console.error(JSON.stringify({ event: 'delivery_needs_review', day: post.day, platform, code }));
   }
+}
+
+async function waitInstagramContainer(meta: MetaClient, id: string): Promise<void> {
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const status = await meta.instagramStatus(id);
+    if (status === 'FINISHED') return;
+    if (['ERROR', 'EXPIRED', 'PUBLISHED'].includes(status)) throw new MetaError(`container_${status.toLowerCase()}`);
+    await new Promise(resolve => setTimeout(resolve, 2_000));
+  }
+  throw new MetaError('container_not_ready');
 }
 
 export async function runDaily(env: RuntimeEnv, timestamp: number): Promise<void> {
@@ -84,9 +100,10 @@ export async function runDaily(env: RuntimeEnv, timestamp: number): Promise<void
     }
     const previous = await env.DB.prepare('SELECT image_url FROM daily_posts WHERE product_id=? ORDER BY day DESC LIMIT 1')
       .bind(product.id).first<{ image_url: string }>();
-    await env.DB.prepare(`INSERT OR IGNORE INTO daily_posts(day,product_id,name,purchase_url,image_url,caption) VALUES(?,?,?,?,?,?)`)
+    const images = imagesForDay(product, day, env.ROTATION_START_DATE, results.length, previous?.image_url);
+    await env.DB.prepare(`INSERT OR IGNORE INTO daily_posts(day,product_id,name,purchase_url,image_url,caption,image_urls_json) VALUES(?,?,?,?,?,?,?)`)
       .bind(day, product.id, product.name!, product.purchase_url,
-        imageForDay(product, day, env.ROTATION_START_DATE, results.length, previous?.image_url), makeCaption(product, day)).run();
+        images[0], makeCaption(product, day), JSON.stringify(images)).run();
     post = await env.DB.prepare('SELECT * FROM daily_posts WHERE day=?').bind(day).first<Post>();
     if (!post) throw new Error('Unable to save daily post');
   }

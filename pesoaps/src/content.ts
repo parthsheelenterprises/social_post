@@ -8,14 +8,21 @@ export type Product = {
 };
 
 const variantBase = 'https://raw.githubusercontent.com/parthsheelenterprises/social_post/main/pesoaps/catalog/images/variants';
+const galleryBase = 'https://raw.githubusercontent.com/parthsheelenterprises/social_post/main/pesoaps/catalog/images/gallery';
 const alternateImages: Record<string, string[]> = Object.fromEntries(
   [1, 2, 3, 4, 5].map(number => {
     const id = `pesoaps-${number}`;
     return [id, [`${variantBase}/${id}-frame.jpg`, `${variantBase}/${id}-editorial.jpg`]];
   }),
 );
-// This is a second photo from the exact Flipkart listing, not a related item.
-alternateImages['pesoaps-1'].push('https://rukminim2.flixcart.com/image/1080/1080/xif0q/soap/y/p/3/1-125-all-in-one-soap-18-selected-ingredients-cleansing-original-imahr8scz3xvgzyk.jpeg');
+// These are every additional photo in the exact product listing galleries.
+// Related-product recommendations are deliberately excluded.
+alternateImages['pesoaps-1'].push(
+  `${galleryBase}/pesoaps-1-gallery-2.jpg`,
+  `${galleryBase}/pesoaps-1-gallery-3.jpg`,
+  `${galleryBase}/pesoaps-1-gallery-4.jpg`,
+);
+alternateImages['pesoaps-3'].push(`${galleryBase}/pesoaps-3-gallery-2.jpg`);
 
 export function istDay(timestamp: number): string {
   return new Date(timestamp + 330 * 60_000).toISOString().slice(0, 10);
@@ -28,7 +35,7 @@ export function rotationIndex(day: string, start: string, count: number): number
   return ((days % count) + count) % count;
 }
 
-export function imageForDay(product: Product, day: string, start: string, productCount: number, previousImageUrl?: string): string {
+export function imagesForDay(product: Product, day: string, start: string, productCount: number, previousImageUrl?: string): string[] {
   const images = [product.image_url!, ...(alternateImages[product.id] ?? [])];
   const days = Math.floor((Date.parse(day) - Date.parse(start)) / 86_400_000);
   const appearance = Math.floor(days / productCount);
@@ -37,7 +44,12 @@ export function imageForDay(product: Product, day: string, start: string, produc
   const offset = [...product.id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % images.length;
   const step = images.length > 2 ? images.length - 1 : 1;
   const index = ((offset + appearance * step) % images.length + images.length) % images.length;
-  return images[index] === previousImageUrl ? images[(index + 1) % images.length] : images[index];
+  const front = images[index] === previousImageUrl ? (index + 1) % images.length : index;
+  return [...images.slice(front), ...images.slice(0, front)];
+}
+
+export function imageForDay(product: Product, day: string, start: string, productCount: number, previousImageUrl?: string): string {
+  return imagesForDay(product, day, start, productCount, previousImageUrl)[0];
 }
 
 export function productReady(product: Product): boolean {

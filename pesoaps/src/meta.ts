@@ -44,8 +44,36 @@ export class MetaClient {
     return data.id;
   }
 
+  async publishFacebookCarousel(pageId: string, images: string[], caption: string): Promise<string> {
+    if (images.length === 1) return this.publishFacebook(pageId, images[0], caption);
+    const photos = await Promise.all(images.map(async image => {
+      const data = await this.request(`${pageId}/photos`, 'POST', { url: image, published: 'false' });
+      if (!data.id) throw new MetaError('missing_unpublished_photo_id');
+      return data.id;
+    }));
+    const params: Record<string, string> = { message: caption };
+    photos.forEach((id, index) => { params[`attached_media[${index}]`] = JSON.stringify({ media_fbid: id }); });
+    const data = await this.request(`${pageId}/feed`, 'POST', params);
+    if (!data.id) throw new MetaError('missing_id_outcome_unknown');
+    return data.id;
+  }
+
   async createInstagram(userId: string, image: string, caption: string): Promise<string> {
     const data = await this.request(`${userId}/media`, 'POST', { image_url: image, caption });
+    if (!data.id) throw new MetaError('missing_container_id');
+    return data.id;
+  }
+
+  async createInstagramCarouselItem(userId: string, image: string): Promise<string> {
+    const data = await this.request(`${userId}/media`, 'POST', { image_url: image, is_carousel_item: 'true' });
+    if (!data.id) throw new MetaError('missing_container_id');
+    return data.id;
+  }
+
+  async createInstagramCarousel(userId: string, children: string[], caption: string): Promise<string> {
+    const data = await this.request(`${userId}/media`, 'POST', {
+      media_type: 'CAROUSEL', children: children.join(','), caption,
+    });
     if (!data.id) throw new MetaError('missing_container_id');
     return data.id;
   }

@@ -1,10 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import worker, { deliver, runDaily } from '../src/index.ts';
-import { imageForDay, istDay, rotationIndex } from '../src/content.ts';
+import { imageForDay, imagesForDay, istDay, rotationIndex } from '../src/content.ts';
 import { MetaClient } from '../src/meta.ts';
+import sharp from 'sharp';
 
 // Exercise the real migrations, SQL constraints and state transitions with
 // SQLite. Only the D1 transport and Meta network calls are substituted.
@@ -39,6 +41,8 @@ function verifyProducts(db) {
 
 function fakeMeta(t, failFacebook = false) {
   const calls = [];
+  let photoNumber = 0;
+  let childNumber = 0;
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.equal(url.hostname, 'graph.facebook.com');
     assert.equal(url.searchParams.has('access_token'), false);
@@ -47,12 +51,28 @@ function fakeMeta(t, failFacebook = false) {
     const path = url.pathname;
     calls.push(path);
     if (path.endsWith('/photos')) {
-      if (failFacebook) throw new Error('socket closed after Meta accepted request');
+      assert.ok(options.body.get('url'));
+      if (options.body.get('published') === 'false') return Response.json({ id: `fb-photo-${++photoNumber}` });
       assert.match(options.body.get('caption'), /https:\/\/(www|dl).flipkart.com\//);
       return Response.json({ id: 'fb-1' });
     }
-    if (path.endsWith('/media')) return Response.json({ id: 'container-1' });
-    if (path.endsWith('/container-1')) return Response.json({ status_code: 'FINISHED' });
+    if (path.endsWith('/feed')) {
+      if (failFacebook) throw new Error('socket closed after Meta accepted request');
+      assert.match(options.body.get('message'), /https:\/\/(www|dl).flipkart.com\//);
+      for (let i = 0; i < photoNumber; i++) {
+        assert.deepEqual(JSON.parse(options.body.get(`attached_media[${i}]`)), { media_fbid: `fb-photo-${i + 1}` });
+      }
+      return Response.json({ id: 'fb-1' });
+    }
+    if (path.endsWith('/media')) {
+      if (options.body.get('is_carousel_item') === 'true') return Response.json({ id: `child-${++childNumber}` });
+      if (options.body.get('media_type') === 'CAROUSEL') {
+        assert.equal(options.body.get('children'), Array.from({ length: childNumber }, (_, i) => `child-${i + 1}`).join(','));
+        return Response.json({ id: 'carousel-1' });
+      }
+      return Response.json({ id: 'container-1' });
+    }
+    if (/\/(child-\d+|container-1|carousel-1)$/.test(path)) return Response.json({ status_code: 'FINISHED' });
     if (path.endsWith('/media_publish')) return Response.json({ id: 'ig-1' });
     throw new Error(`Unexpected path: ${path}`);
   });
@@ -87,7 +107,13 @@ test('both platforms publish once and replay cannot duplicate posts', async t =>
   const calls = fakeMeta(t);
   await runDaily(env, Date.parse('2026-09-26T02:30Z'));
   await runDaily(env, Date.parse('2026-09-26T02:30Z'));
-  assert.equal(calls.length, 4);
+  assert.equal(calls.filter(p => p.endsWith('/feed')).length, 1);
+  assert.equal(calls.filter(p => p.endsWith('/media_publish')).length, 1);
+  assert.equal(calls.filter(p => p.endsWith('/photos')).length, 6);
+  const post = db.prepare('SELECT image_url,image_urls_json FROM daily_posts').get();
+  const images = JSON.parse(post.image_urls_json);
+  assert.equal(images.length, 6);
+  assert.equal(images[0], post.image_url);
   const rows = db.prepare('SELECT status,remote_id FROM deliveries ORDER BY platform').all();
   assert.deepEqual(rows.map(r => [r.status, r.remote_id]), [['published', 'fb-1'], ['published', 'ig-1']]);
   assert.equal(db.prepare('SELECT status FROM runs').get().status, 'published');
@@ -100,7 +126,7 @@ test('ambiguous Facebook failure does not block Instagram or trigger duplicate r
   const calls = fakeMeta(t, true);
   await assert.rejects(runDaily(env, Date.parse('2026-09-26T02:30Z')), /need review/);
   await assert.rejects(runDaily(env, Date.parse('2026-09-26T02:30Z')), /need review/);
-  assert.equal(calls.filter(p => p.endsWith('/photos')).length, 1);
+  assert.equal(calls.filter(p => p.endsWith('/feed')).length, 1);
   assert.equal(calls.filter(p => p.endsWith('/media_publish')).length, 1);
   const row = db.prepare("SELECT status,error_code FROM deliveries WHERE platform='facebook'").get();
   assert.equal(row.status, 'needs_review');
@@ -121,7 +147,7 @@ test('concurrent delivery claims publish only once', async t => {
   t.after(() => db.close());
   verifyProducts(db);
   const calls = fakeMeta(t);
-  db.exec("INSERT INTO daily_posts VALUES ('2026-09-26','pesoaps-1','Fixture','https://dl.flipkart.com/s/lHa0cAuuuN','https://example.com/soap.jpg','Buy https://dl.flipkart.com/s/lHa0cAuuuN')");
+  db.exec("INSERT INTO daily_posts(day,product_id,name,purchase_url,image_url,caption,image_urls_json) VALUES ('2026-09-26','pesoaps-1','Fixture','https://dl.flipkart.com/s/lHa0cAuuuN','https://example.com/soap.jpg','Buy https://dl.flipkart.com/s/lHa0cAuuuN','[\"https://example.com/soap.jpg\"]')");
   const post = db.prepare('SELECT * FROM daily_posts').get();
   const meta = new MetaClient(env.META_GRAPH_VERSION, env.META_PAGE_ACCESS_TOKEN);
   await Promise.all([deliver(env, post, 'facebook', meta), deliver(env, post, 'facebook', meta)]);
@@ -173,16 +199,33 @@ test('repeat appearances vary the same product photo without changing its listin
   const products = db.prepare('SELECT * FROM products ORDER BY position').all();
   for (const product of products) {
     const images = [];
-    for (let cycle = 0; cycle < 3; cycle++) {
+    const count = [6, 3, 4, 3, 3][product.position];
+    for (let cycle = 0; cycle < count; cycle++) {
       const day = new Date(Date.parse('2026-09-26') + (product.position + cycle * products.length) * 86_400_000)
         .toISOString().slice(0, 10);
-      images.push(imageForDay(product, day, '2026-09-26', products.length));
+      const carousel = imagesForDay(product, day, '2026-09-26', products.length);
+      assert.equal(carousel.length, count);
+      assert.equal(new Set(carousel).size, carousel.length);
+      images.push(carousel[0]);
     }
-    assert.equal(new Set(images).size, 3, `${product.id} should vary on each repeat`);
+    assert.equal(new Set(images).size, count, `${product.id} should use every image as the front`);
     for (const image of images) {
       assert.equal(new URL(image).protocol, 'https:');
       assert.match(image, /\.jpe?g(?:\?|$)/);
     }
+  }
+});
+
+test('all curated Flipkart gallery photos have social-ready local assets', async () => {
+  const gallery = JSON.parse(readFileSync(new URL('../catalog/flipkart-gallery.json', import.meta.url), 'utf8'));
+  assert.deepEqual(gallery.map(image => image.id), ['pesoaps-1', 'pesoaps-1', 'pesoaps-1', 'pesoaps-3']);
+  for (const image of gallery) {
+    assert.equal(new URL(image.source_url).hostname, 'rukminim2.flixcart.com');
+    const file = new URL(`../${image.social_file}`, import.meta.url);
+    assert.ok(statSync(file).size > 100_000);
+    const metadata = await sharp(fileURLToPath(file)).metadata();
+    assert.equal(metadata.width, 1080);
+    assert.equal(metadata.height, 1080);
   }
 });
 
@@ -197,5 +240,5 @@ test('first new creative avoids repeating the previously published photo', async
   await runDaily(env, Date.parse('2026-10-18T02:30:00Z'));
   const next = db.prepare("SELECT image_url FROM daily_posts WHERE day='2026-10-18'").get();
   assert.notEqual(next.image_url, product.image_url);
-  assert.match(next.image_url, /pesoaps-3-frame\.jpg$/);
+  assert.match(next.image_url, /pesoaps-3-gallery-2\.jpg$/);
 });

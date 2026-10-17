@@ -1,6 +1,6 @@
 # PESoaps daily social posts
 
-Cloudflare Worker for Parthsheel Enterprises. One product photo and caption per
+Cloudflare Worker for Parthsheel Enterprises. One product carousel and caption per
 platform per day, at **08:00 Asia/Kolkata (02:30 UTC)**. The five supplied Flipkart
 links rotate in order. The deployed Cron Trigger and D1 database run in Cloudflare;
 the laptop is not part of scheduled execution. GitHub stores code. Its optional
@@ -49,14 +49,17 @@ Cloudflare; restoring account access requires resolving Meta's account prompt.
 
 ## Publishing behavior
 
-The Worker selects a product by Indian calendar date and chooses a different
-verified image layout on each repeat of that product. The layouts use the exact
-product photo inside branded frames; the first soap also has a second photo from
-its Flipkart gallery. The chosen image URL and caption are saved for the day,
-and the previous image is excluded so the change takes effect on the next post.
-Retries cannot change the creative or duplicate a delivery. The layout JPEGs
-are committed in `catalog/images/variants/` and served publicly from this repo.
-The Worker then publishes the same photo to Facebook and Instagram. Captions
+The Worker selects a product by Indian calendar date. Its post contains every
+photo from that exact Flipkart listing, plus two layouts of the verified product
+photo. It rotates which image is first each time the product returns, and skips
+the previous cover. The selected image order and caption are saved for the day,
+so retries cannot change the carousel or duplicate a delivery. Portrait gallery
+photos are padded to square JPEGs without cropping. Gallery sources are listed
+in `catalog/flipkart-gallery.json`; the publishable JPEGs and branded layouts
+are committed under `catalog/images/` and served publicly from this repo.
+The Worker publishes the same image order as a multi-photo Facebook post and an
+Instagram carousel. Listings with one Flipkart photo use three images total;
+the first soap uses six, and Coffee Scrub uses four. Captions
 use the verified product name, a rotating introduction, the exact Flipkart link,
 and brand hashtags. They do not invent discounts, stock status, health benefits,
 or product attributes. It does not scrape Flipkart each day.
