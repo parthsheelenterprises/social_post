@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, readdirSync } from 'node:fs';
 import worker, { deliver, runDaily } from '../src/index.ts';
-import { istDay, rotationIndex } from '../src/content.ts';
+import { imageForDay, istDay, rotationIndex } from '../src/content.ts';
 import { MetaClient } from '../src/meta.ts';
 
 // Exercise the real migrations, SQL constraints and state transitions with
@@ -164,5 +164,24 @@ test('catalog preserves all five exact Flipkart variants and verified JPEG URLs'
     assert.ok(row.name);
     assert.equal(new URL(row.image_url).hostname, 'rukminim2.flixcart.com');
     assert.ok(new URL(row.image_url).pathname.endsWith('.jpeg'));
+  }
+});
+
+test('repeat appearances vary the same product photo without changing its listing', t => {
+  const { db } = setup();
+  t.after(() => db.close());
+  const products = db.prepare('SELECT * FROM products ORDER BY position').all();
+  for (const product of products) {
+    const images = [];
+    for (let cycle = 0; cycle < 3; cycle++) {
+      const day = new Date(Date.parse('2026-09-26') + (product.position + cycle * products.length) * 86_400_000)
+        .toISOString().slice(0, 10);
+      images.push(imageForDay(product, day, '2026-09-26', products.length));
+    }
+    assert.equal(new Set(images).size, 3, `${product.id} should vary on each repeat`);
+    for (const image of images) {
+      assert.equal(new URL(image).protocol, 'https:');
+      assert.match(image, /\.jpe?g(?:\?|$)/);
+    }
   }
 });

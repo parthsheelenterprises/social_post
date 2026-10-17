@@ -1,4 +1,4 @@
-import { istDay, makeCaption, productReady, rotationIndex, type Product } from './content.ts';
+import { imageForDay, istDay, makeCaption, productReady, rotationIndex, type Product } from './content.ts';
 import { MetaClient, MetaError } from './meta.ts';
 
 export type RuntimeEnv = Env & { META_PAGE_ACCESS_TOKEN?: string };
@@ -83,7 +83,8 @@ export async function runDaily(env: RuntimeEnv, timestamp: number): Promise<void
       throw new Error('Product data incomplete');
     }
     await env.DB.prepare(`INSERT OR IGNORE INTO daily_posts(day,product_id,name,purchase_url,image_url,caption) VALUES(?,?,?,?,?,?)`)
-      .bind(day, product.id, product.name!, product.purchase_url, product.image_url!, makeCaption(product, day)).run();
+      .bind(day, product.id, product.name!, product.purchase_url,
+        imageForDay(product, day, env.ROTATION_START_DATE, results.length), makeCaption(product, day)).run();
     post = await env.DB.prepare('SELECT * FROM daily_posts WHERE day=?').bind(day).first<Post>();
     if (!post) throw new Error('Unable to save daily post');
   }

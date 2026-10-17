@@ -49,12 +49,16 @@ Cloudflare; restoring account access requires resolving Meta's account prompt.
 
 ## Publishing behavior
 
-The Worker selects a product by Indian calendar date, stores an immutable daily
-caption and image URL, then publishes a photo to Facebook and Instagram. Captions
+The Worker selects a product by Indian calendar date and chooses a different
+verified image layout on each repeat of that product. The layouts use the exact
+product photo inside branded frames; the first soap also has a second photo from
+its Flipkart gallery. The chosen image URL and caption are saved for the day,
+so retries cannot change the creative or duplicate a delivery. The layout JPEGs
+are committed in `catalog/images/variants/` and served publicly from this repo.
+The Worker then publishes the same photo to Facebook and Instagram. Captions
 use the verified product name, a rotating introduction, the exact Flipkart link,
 and brand hashtags. They do not invent discounts, stock status, health benefits,
-or product attributes. The photo is the verified product image; the current
-implementation does not generate new artwork or scrape Flipkart each day.
+or product attributes. It does not scrape Flipkart each day.
 
 The caption contains the purchase URL on both platforms. Instagram displays
 caption URLs as plain text, so a bio/shop link is needed for a clickable purchase
