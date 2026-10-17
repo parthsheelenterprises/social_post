@@ -5,6 +5,7 @@ export type Product = {
   name: string | null;
   image_url: string | null;
   verified: number;
+  gallery_json?: string | null;
 };
 
 const variantBase = 'https://raw.githubusercontent.com/parthsheelenterprises/social_post/main/pesoaps/catalog/images/variants';
@@ -36,7 +37,11 @@ export function rotationIndex(day: string, start: string, count: number): number
 }
 
 export function imagesForDay(product: Product, day: string, start: string, productCount: number, previousImageUrl?: string): string[] {
-  const images = [product.image_url!, ...(alternateImages[product.id] ?? [])];
+  const images = product.gallery_json ? JSON.parse(product.gallery_json) as string[] :
+    [product.image_url!, ...(alternateImages[product.id] ?? [])];
+  if (!images.length || images.length > 10 || images.some(image => !image.startsWith('https://'))) {
+    throw new Error(`Invalid gallery for ${product.id}`);
+  }
   const days = Math.floor((Date.parse(day) - Date.parse(start)) / 86_400_000);
   const appearance = Math.floor(days / productCount);
   // A product gets a different image each time it comes around. The fixed

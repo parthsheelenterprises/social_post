@@ -1,0 +1,7 @@
+# Flipkart product IDs (the pid= value), one per line. Add a new ID at the end.
+# A new ID is imported only if its exact PE listing and photos can be verified.
+SOPHR8SDHRHRJKGS
+SOPHR9YYWTARCTEY
+SOPHPTRAWNB7ZZGT
+SOPHR9UDPKNGFU6K
+SOPHQ7RXFZVSQXXE

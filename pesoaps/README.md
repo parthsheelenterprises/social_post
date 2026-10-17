@@ -49,6 +49,22 @@ Cloudflare; restoring account access requires resolving Meta's account prompt.
 
 ## Publishing behavior
 
+To request a new product, add its Flipkart **PID** (the value after `pid=` in
+its listing URL) on a new line in `catalog/product-skus.txt` and commit it to
+`main`. The **Import PESoaps product SKUs** GitHub Action tries to find the
+exact listing, verifies that its title begins with Parthsheel Enterprises,
+downloads every detectable listing photo, and adds the product to D1 rotation.
+It commits the catalog photos and deploys automatically when the
+`pesoaps-production` environment has `CLOUDFLARE_API_TOKEN` configured. The
+daily publishing job remains in Cloudflare at 08:00 IST.
+
+Flipkart has no reliable public PID lookup in this setup. If its search does
+not return a link containing the exact PID, the import fails visibly and the
+existing daily rotation keeps running. In that case provide the full Flipkart
+product URL for verification; do not guess a product from a search result.
+The import does not claim that an SKU alone can always identify a listing.
+Keep each product's gallery to at most ten images, Meta's carousel limit.
+
 The Worker selects a product by Indian calendar date. Its post contains every
 photo from that exact Flipkart listing, plus two layouts of the verified product
 photo. It rotates which image is first each time the product returns, and skips

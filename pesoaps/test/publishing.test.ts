@@ -216,6 +216,19 @@ test('repeat appearances vary the same product photo without changing its listin
   }
 });
 
+test('imported product gallery rotates every verified listing photo', () => {
+  const product = { id: 'pesoaps-new', position: 5, purchase_url: 'https://www.flipkart.com/example/p/itm123?pid=SOPNEW123456',
+    name: 'PE Soap', image_url: 'https://example.com/one.jpg', verified: 1,
+    gallery_json: JSON.stringify(['https://example.com/one.jpg', 'https://example.com/two.jpg', 'https://example.com/three.jpg']) };
+  const fronts = Array.from({ length: 3 }, (_, appearance) => {
+    const day = new Date(Date.parse('2026-09-26') + (5 + appearance * 6) * 86_400_000).toISOString().slice(0, 10);
+    const images = imagesForDay(product, day, '2026-09-26', 6);
+    assert.equal(images.length, 3);
+    return images[0];
+  });
+  assert.equal(new Set(fronts).size, 3);
+});
+
 test('all curated Flipkart gallery photos have social-ready local assets', async () => {
   const gallery = JSON.parse(readFileSync(new URL('../catalog/flipkart-gallery.json', import.meta.url), 'utf8'));
   assert.deepEqual(gallery.map(image => image.id), ['pesoaps-1', 'pesoaps-1', 'pesoaps-1', 'pesoaps-3']);

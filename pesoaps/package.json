@@ -9,7 +9,8 @@
     "test": "node --test test/*.test.ts",
     "build": "sh ./scripts/wrangler.sh deploy --dry-run",
     "deploy": "sh ./scripts/wrangler.sh deploy",
-    "db:migrate": "sh ./scripts/wrangler.sh d1 migrations apply pe-soaps-social-posts --remote"
+    "db:migrate": "sh ./scripts/wrangler.sh d1 migrations apply pe-soaps-social-posts --remote",
+    "catalog:import": "node scripts/import-product-skus.mjs"
   },
   "keywords": [],
   "author": "",
