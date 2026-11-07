@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import worker, { deliver, runDaily } from '../src/index.ts';
-import { imageForDay, imagesForDay, istDay, rotationIndex } from '../src/content.ts';
+import { imageForDay, imagesForDay, istDay, makeCaption, rotationIndex } from '../src/content.ts';
 import { MetaClient } from '../src/meta.ts';
 import sharp from 'sharp';
 
@@ -229,6 +229,16 @@ test('imported product gallery rotates every verified listing photo', () => {
     return images[0];
   });
   assert.equal(new Set(fronts).size, 3);
+});
+
+test('captions include only supplied listing features and benefits', () => {
+  const caption = makeCaption({ id: 'pesoaps_sku', position: 0, verified: 1,
+    name: 'PESoaps Herbal Soap (125 g)', image_url: 'https://example.com/a.jpg',
+    purchase_url: 'https://www.flipkart.com/p/itm?pid=SOP1234567890',
+    features: ['Herbal soap bar', '125 g each', 'Helps cleanse skin'] }, '2026-11-08');
+  assert.match(caption, /Description: PESoaps Herbal Soap/);
+  assert.match(caption, /Features:\n• Herbal soap bar\n• 125 g each/);
+  assert.match(caption, /Benefits \(as listed on Flipkart\):\n• Helps cleanse skin/);
 });
 
 test('all curated Flipkart gallery photos have social-ready local assets', async () => {

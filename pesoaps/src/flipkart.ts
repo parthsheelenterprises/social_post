@@ -52,11 +52,44 @@ export async function findFlipkartProduct(env: RuntimeEnv, queue: SellerSku[]): 
       const image = row.image_pid === listing.product_id && row.image_url
         ? row.image_url : await listingImage(purchase);
       if (!image) continue;
+      const features = await listingFeatures(purchase);
       return {
         id: row.sku, position: 100_000 + row.position, name: listing.product_title,
-        purchase_url: purchase.href, image_url: image, verified: 1,
+        purchase_url: purchase.href, image_url: image, verified: 1, features,
       };
     }
+  }
+}
+
+async function listingFeatures(purchase: URL): Promise<string[]> {
+  // This runs only in Workers. Tests use the seller listing contract without
+  // pretending that the Node test runtime has HTMLRewriter.
+  if (typeof HTMLRewriter === 'undefined') return [];
+  try {
+    const page = await fetch(purchase, { redirect: 'manual', signal: AbortSignal.timeout(8_000) });
+    if (!page.ok || !page.headers.get('Content-Type')?.includes('text/html')) return [];
+    let afterHeading = false;
+    let collected = '';
+    const output = new HTMLRewriter().on('*', {
+      text(text) {
+        let value = text.text.replace(/\s+/g, ' ').trim();
+        if (!value) return;
+        if (!afterHeading) {
+          const heading = value.toLowerCase().indexOf('key features');
+          if (heading < 0) return;
+          afterHeading = true;
+          value = value.slice(heading + 'key features'.length).trim();
+        }
+        if (collected.length < 1_200) collected += `${value} `;
+      },
+    }).transform(page);
+    await output.body?.pipeTo(new WritableStream());
+    const numbered = [...collected.matchAll(/(?:^|\s)\d+\.\s*(.*?)(?=\s+\d+\.\s|$)/g)]
+      .map(match => match[1].trim()).filter(feature => feature.length > 2 && feature.length <= 120);
+    return [...new Set(numbered)].slice(0, 8);
+  } catch {
+    // Missing presentation details must never block the scheduled post.
+    return [];
   }
 }
 

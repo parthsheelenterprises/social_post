@@ -6,6 +6,7 @@ export type Product = {
   image_url: string | null;
   verified: number;
   gallery_json?: string | null;
+  features?: string[];
 };
 
 const variantBase = 'https://raw.githubusercontent.com/parthsheelenterprises/social_post/main/pesoaps/catalog/images/variants';
@@ -68,8 +69,9 @@ export function productReady(product: Product): boolean {
 }
 
 export function makeCaption(product: Product, day: string): string {
+  const details = captionDetails(product);
   if (!product.id.startsWith('pesoaps-') && !product.id.startsWith('pesoaps_')) {
-    return `Today’s Parthsheel Enterprises pick\n\n${product.name}\n\nShop on Flipkart: ${product.purchase_url}\n\n#ParthsheelEnterprises #ShopOnFlipkart`;
+    return `Today’s Parthsheel Enterprises pick\n\n${details}\n\nShop on Flipkart: ${product.purchase_url}\n\n#ParthsheelEnterprises #ShopOnFlipkart`;
   }
   const openers = [
     'Today’s PESoaps pick',
@@ -81,5 +83,18 @@ export function makeCaption(product: Product, day: string): string {
     'Take a closer look at PESoaps',
   ];
   const opener = openers[new Date(day + 'T00:00:00Z').getUTCDay()];
-  return `${opener}\n\n${product.name}\n\nShop on Flipkart: ${product.purchase_url}\n\nPESoaps | Parthsheel Enterprises\n#PESoaps #ParthsheelEnterprises #Soap #ShopOnFlipkart`;
+  return `${opener}\n\n${details}\n\nShop on Flipkart: ${product.purchase_url}\n\nPESoaps | Parthsheel Enterprises\n#PESoaps #ParthsheelEnterprises #Soap #ShopOnFlipkart`;
+}
+
+function captionDetails(product: Product): string {
+  const features = (product.features ?? [])
+    .map(feature => feature.replace(/\s+/g, ' ').trim())
+    .filter(feature => feature.length > 2 && feature.length <= 120)
+    .slice(0, 6);
+  const benefits = features.filter(feature => /\b(helps?|cleans|exfoliat|brighten|remov|suitable|ideal)\b/i.test(feature));
+  const practical = features.filter(feature => !benefits.includes(feature));
+  const sections = [`Description: ${product.name}`];
+  if (practical.length) sections.push(`Features:\n${practical.map(feature => `• ${feature}`).join('\n')}`);
+  if (benefits.length) sections.push(`Benefits (as listed on Flipkart):\n${benefits.map(benefit => `• ${benefit}`).join('\n')}`);
+  return sections.join('\n\n');
 }
