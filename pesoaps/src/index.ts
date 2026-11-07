@@ -2,7 +2,12 @@ import { imagesForDay, istDay, makeCaption, productReady, rotationIndex, type Pr
 import { findFlipkartProduct, type SellerSku } from './flipkart.ts';
 import { MetaClient, MetaError } from './meta.ts';
 
-export type RuntimeEnv = Env & { META_PAGE_ACCESS_TOKEN?: string; FLIPKART_APP_ID?: string; FLIPKART_APP_SECRET?: string };
+export type RuntimeEnv = Env & {
+  META_PAGE_ACCESS_TOKEN?: string;
+  FLIPKART_APP_ID?: string;
+  FLIPKART_APP_SECRET?: string;
+  RUN_NOW_TOKEN?: string;
+};
 type Platform = 'facebook' | 'instagram';
 type Post = { day: string; product_id: string; name: string; purchase_url: string; image_url: string; image_urls_json: string | null; caption: string };
 
@@ -11,6 +16,17 @@ async function recordRun(env: RuntimeEnv, day: string, status: string, details: 
     ON CONFLICT(day) DO UPDATE SET status=excluded.status,details=excluded.details,updated_at=CURRENT_TIMESTAMP`)
     .bind(day, status, details).run();
   console.log(JSON.stringify({ event: 'daily_post', day, status, details }));
+}
+
+async function validRunNowToken(request: Request, expected?: string): Promise<boolean> {
+  if (!expected) return false;
+  const supplied = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  const encoder = new TextEncoder();
+  const [suppliedHash, expectedHash] = await Promise.all([
+    crypto.subtle.digest('SHA-256', encoder.encode(supplied)),
+    crypto.subtle.digest('SHA-256', encoder.encode(expected)),
+  ]);
+  return crypto.subtle.timingSafeEqual(suppliedHash, expectedHash);
 }
 
 export function configurationIssues(env: RuntimeEnv): string[] {
@@ -164,6 +180,11 @@ export default {
         status: status === 'published' ? 200 : 503,
         headers: { 'Cache-Control': 'no-store' },
       });
+    }
+    if (request.method === 'POST' && path === '/internal/run-now') {
+      if (!await validRunNowToken(request, env?.RUN_NOW_TOKEN)) return new Response('Not found', { status: 404 });
+      await runDaily(env, Date.now());
+      return Response.json({ day: istDay(Date.now()), status: 'published' });
     }
     return new Response('Not found', { status: 404 });
   },
