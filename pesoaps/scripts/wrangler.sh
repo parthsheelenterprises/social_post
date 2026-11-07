@@ -10,4 +10,6 @@ if [ -n "${PE_SOAPS_CLOUDFLARE_API_TOKEN:-}" ]; then
 fi
 
 unset CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
-exec ./node_modules/.bin/wrangler --profile pesoaps-pe "$@"
+# Some subcommands parse their required positional arguments before global
+# flags; put the dedicated PE profile after the command arguments.
+exec ./node_modules/.bin/wrangler "$@" --profile pesoaps-pe

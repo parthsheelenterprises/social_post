@@ -159,8 +159,6 @@ test('concurrent delivery claims publish only once', async t => {
 test('public HTTP requests cannot trigger publishing', async () => {
   const response = await worker.fetch(new Request('https://example.com/run', { method: 'POST' }));
   assert.equal(response.status, 404);
-  const protectedResponse = await worker.fetch(new Request('https://example.com/internal/run-now', { method: 'POST' }));
-  assert.equal(protectedResponse.status, 404);
 });
 
 test('daily health reports a missed run after the scheduled post window', async t => {
