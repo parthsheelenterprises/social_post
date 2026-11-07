@@ -1,7 +1,8 @@
 import { imagesForDay, istDay, makeCaption, productReady, rotationIndex, type Product } from './content.ts';
+import { findFlipkartProduct, type SellerSku } from './flipkart.ts';
 import { MetaClient, MetaError } from './meta.ts';
 
-export type RuntimeEnv = Env & { META_PAGE_ACCESS_TOKEN?: string };
+export type RuntimeEnv = Env & { META_PAGE_ACCESS_TOKEN?: string; FLIPKART_APP_ID?: string; FLIPKART_APP_SECRET?: string };
 type Platform = 'facebook' | 'instagram';
 type Post = { day: string; product_id: string; name: string; purchase_url: string; image_url: string; image_urls_json: string | null; caption: string };
 
@@ -90,17 +91,40 @@ export async function runDaily(env: RuntimeEnv, timestamp: number): Promise<void
   }
   let post = await env.DB.prepare('SELECT * FROM daily_posts WHERE day=?').bind(day).first<Post>();
   if (!post) {
-    const { results } = await env.DB.prepare('SELECT * FROM products WHERE enabled=1 ORDER BY position').all<Product>();
-    // Keep unverified products in the rotation; stop on their day instead of
-    // silently advertising a different item or inventing product information.
-    const product = results.length ? results[rotationIndex(day, env.ROTATION_START_DATE, results.length)] : undefined;
+    const { results: queue } = await env.DB.prepare('SELECT * FROM seller_sku_queue ORDER BY position').all<SellerSku>();
+    let product: Product | undefined;
+    let productCount: number;
+    if (queue.length) {
+      const previous = await env.DB.prepare(`SELECT q.position FROM daily_posts p
+        JOIN seller_sku_queue q ON q.sku=p.product_id WHERE p.day<? ORDER BY p.day DESC LIMIT 1`)
+        .bind(day).first<{ position: number }>();
+      const next = previous ? queue.findIndex(row => row.position > previous.position) : 0;
+      const start = Math.max(0, next);
+      try {
+        product = await findFlipkartProduct(env, [...queue.slice(start), ...queue.slice(0, start)]);
+      } catch (error) {
+        await recordRun(env, day, 'blocked', error instanceof Error ? error.message : 'Flipkart lookup failed');
+        throw new Error('Flipkart listing verification failed');
+      }
+      productCount = queue.length;
+      if (!product) {
+        await recordRun(env, day, 'skipped_no_eligible_sku', 'No active listed SKU with a usable Flipkart photo');
+        return;
+      }
+      await env.DB.prepare(`INSERT OR IGNORE INTO products(id,position,purchase_url,name,image_url,verified)
+        VALUES(?,?,?,?,?,1)`).bind(product.id, product.position, product.purchase_url, product.name, product.image_url).run();
+    } else {
+      const { results } = await env.DB.prepare('SELECT * FROM products WHERE enabled=1 ORDER BY position').all<Product>();
+      productCount = results.length;
+      product = productCount ? results[rotationIndex(day, env.ROTATION_START_DATE, productCount)] : undefined;
+    }
     if (!product || !productReady(product)) {
       await recordRun(env, day, 'blocked', `Product data needs verification: ${product?.id ?? 'empty_catalog'}`);
       throw new Error('Product data incomplete');
     }
     const previous = await env.DB.prepare('SELECT image_url FROM daily_posts WHERE product_id=? ORDER BY day DESC LIMIT 1')
       .bind(product.id).first<{ image_url: string }>();
-    const images = imagesForDay(product, day, env.ROTATION_START_DATE, results.length, previous?.image_url);
+    const images = imagesForDay(product, day, env.ROTATION_START_DATE, productCount, previous?.image_url);
     await env.DB.prepare(`INSERT OR IGNORE INTO daily_posts(day,product_id,name,purchase_url,image_url,caption,image_urls_json) VALUES(?,?,?,?,?,?,?)`)
       .bind(day, product.id, product.name!, product.purchase_url,
         images[0], makeCaption(product, day), JSON.stringify(images)).run();

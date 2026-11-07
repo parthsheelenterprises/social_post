@@ -68,6 +68,9 @@ export function productReady(product: Product): boolean {
 }
 
 export function makeCaption(product: Product, day: string): string {
+  if (!product.id.startsWith('pesoaps-') && !product.id.startsWith('pesoaps_')) {
+    return `Today’s Parthsheel Enterprises pick\n\n${product.name}\n\nShop on Flipkart: ${product.purchase_url}\n\n#ParthsheelEnterprises #ShopOnFlipkart`;
+  }
   const openers = [
     'Today’s PESoaps pick',
     'Meet your next PESoaps pick',

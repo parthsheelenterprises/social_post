@@ -3,6 +3,7 @@
   "name": "pe-soaps-social-posts",
   "account_id": "1fbc90f336ed0cd8f6934c631fb732f4",
   "main": "src/index.ts",
+  "assets": { "directory": "catalog/social-media" },
   "compatibility_date": "2026-09-25",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true, "head_sampling_rate": 1 },

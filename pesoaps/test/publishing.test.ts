@@ -16,6 +16,8 @@ function setup() {
   for (const file of readdirSync(migrations).filter(file => file.endsWith('.sql')).sort()) {
     db.exec(readFileSync(new URL(file, migrations), 'utf8'));
   }
+  // Legacy fixtures exercise the original carousel rotation.
+  db.exec("DELETE FROM seller_sku_queue; UPDATE products SET enabled=1");
   const binding = {
     prepare(sql) {
       let values = [];
@@ -254,4 +256,41 @@ test('first new creative avoids repeating the previously published photo', async
   const next = db.prepare("SELECT image_url FROM daily_posts WHERE day='2026-10-18'").get();
   assert.notEqual(next.image_url, product.image_url);
   assert.match(next.image_url, /pesoaps-3-gallery-2\.jpg$/);
+});
+
+test('seller SKU queue skips missing and inactive listings and resumes after the last selection', async t => {
+  const { db, env } = setup();
+  t.after(() => db.close());
+  const pids = ['SOPHSS5AV4FKM2KA', 'SOPHSS5EYQAWARGF', 'SOPHSS5QAARQHVTH'];
+  const skus = ['missing', 'inactive', 'first', 'second'];
+  for (const [position, sku] of skus.entries()) {
+    db.prepare('INSERT INTO seller_sku_queue VALUES(?,?,?,?)')
+      .run(position, sku, pids[position - 1] ?? null, 'https://example.com/exact.jpg');
+  }
+  fakeMeta(t);
+  const metaFetch = globalThis.fetch;
+  const requested = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    if (String(url).startsWith('https://api.flipkart.net/')) {
+      assert.equal(options.redirect, 'manual');
+    }
+    if (String(url).startsWith('https://api.flipkart.net/oauth-service/')) return Response.json({ access_token: 'test' });
+    if (String(url).startsWith('https://api.flipkart.net/sellers/')) {
+      const { sku_ids } = JSON.parse(options.body);
+      requested.push(sku_ids);
+      return Response.json({ available: Object.fromEntries(sku_ids.filter(sku => sku !== 'missing').map(sku => {
+        const pid = pids[skus.indexOf(sku) - 1];
+        return [sku, {
+          product_id: pid, product_url: `https://www.flipkart.com/p/itm123?pid=${pid}`,
+          product_title: sku, listing_status: sku === 'inactive' ? 'INACTIVE' : 'ACTIVE',
+        }];
+      })) });
+    }
+    return metaFetch(url, options);
+  });
+  const configured = { ...env, FLIPKART_APP_ID: 'test', FLIPKART_APP_SECRET: 'test' };
+  await runDaily(configured, Date.parse('2026-11-06T02:30Z'));
+  await runDaily(configured, Date.parse('2026-11-07T02:30Z'));
+  assert.deepEqual(db.prepare('SELECT product_id FROM daily_posts ORDER BY day').all().map(row => row.product_id), ['first', 'second']);
+  assert.deepEqual(requested, [skus, ['second', 'missing', 'inactive', 'first']]);
 });
